@@ -11,6 +11,9 @@ from flask import Flask, request, send_from_directory, render_template, redirect
 from werkzeug.utils import secure_filename
 from typing import List, Dict, Tuple, Optional
 from vecsim import SciKitIndex, RedisIndex
+import clip 
+import torch
+
 
 __dir__ = Path(__file__).absolute().parent
 upload_dir = __dir__ / "upload"
@@ -50,13 +53,17 @@ def allowed_file(filename):
 
 def embed_image(image_path):
     # random 512 dim vector
-    # TODO: implement
-    return np.random.rand(512)
+    # Mine
+    image = preprocess(image).unsqueeze(0).to(device)
+    image_features = model.encode_image(image)
+    return image_features
 
 def embed_text(text):
     # random 512 dim vector
-    # TODO: implement
-    return np.random.rand(512)
+    # Mine
+    text = preprocess(text).unsqueeze(0).to(device)
+    text_features = model.encode_image(text)
+    return text_features
 
 @app.route('/imgsearch', methods=['POST','GET'])
 def imgsearch():
@@ -119,6 +126,12 @@ def page_not_found(e):
 
 
 if __name__ == "__main__":
+    #mine
+    print("model loaded")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model, preprocess = clip.load("ViT-L/14@336px", device=device)
+
+
     print("Loading data...")
     SAMPLE_SIZE = 2000
     # TODO:
@@ -134,8 +147,15 @@ if __name__ == "__main__":
 
     print("Indexing...")
     sim = SciKitIndex("cosine",512)
+
     # TODO:
     # item_embedding = np.load(data_dir/"clip_emb.npy")
+
+    #Mine
+    #clip_emb.npy is a np array in which each element is the embedding of another image
+    # embedding_ids should be the according idx of each emmbeded value
+    item_embedding = np.load("clip_emb.npy")
+
     item_embedding = np.random.random((SAMPLE_SIZE,512))
     sim.add_items(item_embedding, embedding_ids)
     sim.init()
